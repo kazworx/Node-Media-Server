@@ -36,6 +36,7 @@ class NodeRelayServer {
     }
     context.nodeEvent.on('relayPull', this.onRelayPull.bind(this));
     context.nodeEvent.on('relayPush', this.onRelayPush.bind(this));
+    context.nodeEvent.on('relayPushStop', this.onRelayPushStop.bind(this));
     context.nodeEvent.on('prePlay', this.onPrePlay.bind(this));
     context.nodeEvent.on('donePlay', this.onDonePlay.bind(this));
     context.nodeEvent.on('postPublish', this.onPostPublish.bind(this));
@@ -111,6 +112,27 @@ class NodeRelayServer {
     this.dynamicSessions.set(id, session);
     session.run();
     Logger.log('[Relay dynamic push] start', id, conf.inPath, ' to ', conf.ouPath);
+  }
+
+  onRelayPushStop(id) {
+    if(id.length > 8) {
+      Logger.log('[onRelayPushStop] invalid id - too long', id);
+      return;
+    }
+
+    let session = context.sessions.get(id);
+
+    if(!session) {
+      Logger.log('[onRelayPushStop] invalid id - no session', id);
+      return;
+    }
+
+    let conf = session.conf;
+    session.ffmpeg_exec.kill();
+    context.sessions.delete(id);
+    this.dynamicSessions.delete(id);
+    Logger.log('[Relay dynamic push] stop', id, conf.inPath, ' to ', conf.ouPath);
+
   }
 
   onPrePlay(id, streamPath, args) {

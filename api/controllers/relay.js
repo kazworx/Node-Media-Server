@@ -57,8 +57,19 @@ function pushStream(req, res, next) {
   }
 }
 
+function pushRelayStop(req, res, next) {
+  let id = req.query.id;
+  if (id) {
+    this.nodeEvent.emit('relayPushStop', id);
+    res.sendStatus(200);
+  } else {
+    res.sendStatus(400);
+  }
+}
+
 module.exports = {
   getStreams,
   pullStream,
-  pushStream
+  pushStream,
+  pushRelayStop
 };
