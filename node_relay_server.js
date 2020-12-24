@@ -99,6 +99,13 @@ class NodeRelayServer {
 
   //从本地拉推到远端
   onRelayPush(url, app, name) {
+
+    const hash = md5(url);
+    if(this.existingSessions.has(hash)) {
+      Logger.log('[Relay dynamic push] existing session', url, hash);
+      return;
+    }
+
     let conf = {};
     conf.app = app;
     conf.name = name;
@@ -107,14 +114,13 @@ class NodeRelayServer {
     conf.ouPath = url;
     let session = new NodeRelaySession(conf);
 
-    const hash = md5(url);
     const id = session.id;
-    
     context.sessions.set(id, session);
-    session.on('end', (id) => {
+    session.on('end', (id, hash) => {
       this.dynamicSessions.delete(id);
-      this.existingSessions.delete((hash);
+      this.existingSessions.delete(hash);
       context.sessions.delete(id);
+      Logger.log('[Relay dynamic session] cleanup', id, hash);
     });
 
     this.dynamicSessions.set(id, session);
