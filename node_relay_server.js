@@ -11,6 +11,7 @@ const context = require('./node_core_ctx');
 const { getFFmpegVersion, getFFmpegUrl } = require('./node_core_utils');
 const fs = require('fs');
 const _ = require('lodash');
+const md5 = require('md5');
 
 class NodeRelayServer {
   constructor(config) {
@@ -18,6 +19,7 @@ class NodeRelayServer {
     this.staticCycle = null;
     this.staticSessions = new Map();
     this.dynamicSessions = new Map();
+    this.existingSessions = new Map();
   }
 
   async run() {
@@ -104,17 +106,26 @@ class NodeRelayServer {
     conf.inPath = `rtmp://127.0.0.1:${this.config.rtmp.port}/${app}/${name}`;
     conf.ouPath = url;
     let session = new NodeRelaySession(conf);
+
+    const hash = md5(url);
     const id = session.id;
+    
     context.sessions.set(id, session);
     session.on('end', (id) => {
       this.dynamicSessions.delete(id);
+      this.existingSessions.delete((hash);
+      context.sessions.delete(id);
     });
+
     this.dynamicSessions.set(id, session);
+    this.existingSessions.set(hash,conf);
+
     session.run();
-    Logger.log('[Relay dynamic push] start', id, conf.inPath, ' to ', conf.ouPath);
+    Logger.log('[Relay dynamic push] start', id, conf.inPath, ' to ', conf.ouPath, hash);
   }
 
   onRelayPushStop(id) {
+
     if(id.length > 8) {
       Logger.log('[onRelayPushStop] invalid id - too long', id);
       return;
@@ -129,8 +140,8 @@ class NodeRelayServer {
 
     let conf = session.conf;
     session.ffmpeg_exec.kill();
-    context.sessions.delete(id);
-    this.dynamicSessions.delete(id);
+//    context.sessions.delete(id);
+//    this.dynamicSessions.delete(id);
     Logger.log('[Relay dynamic push] stop', id, conf.inPath, ' to ', conf.ouPath);
 
   }
