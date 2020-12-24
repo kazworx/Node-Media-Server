@@ -11,7 +11,6 @@ const context = require('./node_core_ctx');
 const { getFFmpegVersion, getFFmpegUrl } = require('./node_core_utils');
 const fs = require('fs');
 const _ = require('lodash');
-const md5 = require('md5');
 
 class NodeRelayServer {
   constructor(config) {
@@ -19,7 +18,6 @@ class NodeRelayServer {
     this.staticCycle = null;
     this.staticSessions = new Map();
     this.dynamicSessions = new Map();
-    this.existingSessions = new Map();
   }
 
   async run() {
@@ -100,12 +98,6 @@ class NodeRelayServer {
   //从本地拉推到远端
   onRelayPush(url, app, name) {
 
-    const hash = md5(url);
-    if(this.existingSessions.has(hash)) {
-      Logger.log('[Relay dynamic push] existing session', url, hash);
-      return;
-    }
-
     let conf = {};
     conf.app = app;
     conf.name = name;
@@ -113,21 +105,18 @@ class NodeRelayServer {
     conf.inPath = `rtmp://127.0.0.1:${this.config.rtmp.port}/${app}/${name}`;
     conf.ouPath = url;
     let session = new NodeRelaySession(conf);
-
     const id = session.id;
     context.sessions.set(id, session);
-    session.on('end', (id, hash) => {
+    session.on('end', (id) => {
       this.dynamicSessions.delete(id);
-      this.existingSessions.delete(hash);
-      context.sessions.delete(id);
-      Logger.log('[Relay dynamic session] cleanup', id, hash);
+      Logger.log('[Relay dynamic session] cleanup', id);
     });
-
-    this.dynamicSessions.set(id, session);
-    this.existingSessions.set(hash,conf);
 
     session.run();
     Logger.log('[Relay dynamic push] start', id, conf.inPath, ' to ', conf.ouPath, hash);
+
+    this.dynamicSessions.set(id, session);
+
   }
 
   onRelayPushStop(id) {
@@ -146,8 +135,8 @@ class NodeRelayServer {
 
     let conf = session.conf;
     session.ffmpeg_exec.kill();
-//    context.sessions.delete(id);
-//    this.dynamicSessions.delete(id);
+    context.sessions.delete(id);
+    this.dynamicSessions.delete(id);
     Logger.log('[Relay dynamic push] stop', id, conf.inPath, ' to ', conf.ouPath);
 
   }
