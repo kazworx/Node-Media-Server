@@ -21,8 +21,6 @@ function getStreams(req, res, next) {
       });
     }
 
-
-
     _.set(stats, [app, name, 'relays'], {
       app: app,
       name: name,

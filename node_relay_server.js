@@ -68,7 +68,7 @@ class NodeRelayServer {
         session.on('end', (id) => {
           this.staticSessions.delete(id);
         });
-        this.staticSessions.set(i, session);
+        this.staticSessions.set(id, session);
         session.run();
         Logger.log('[Relay static pull] start', i, conf.inPath, ' to ', conf.ouPath);
       }
@@ -88,6 +88,7 @@ class NodeRelayServer {
     context.sessions.set(id, session);
     session.on('end', (id) => {
       this.dynamicSessions.delete(id);
+      context.sessions.delete(id);
     });
     this.dynamicSessions.set(id, session);
     session.run();
@@ -109,6 +110,7 @@ class NodeRelayServer {
     context.sessions.set(id, session);
     session.on('end', (id) => {
       this.dynamicSessions.delete(id);
+      context.sessions.delete(id);
       Logger.log('[Relay dynamic session] cleanup', id);
     });
 
